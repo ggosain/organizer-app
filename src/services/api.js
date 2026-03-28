@@ -1,4 +1,4 @@
-const API_BASE = 'https://tikts.au/organizer/api';
+const API_BASE = 'https://tixrocket.com/organizer/api';
 
 export async function apiGet(path) {
   const res = await fetch(`${API_BASE}/${path}`, {
