@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import { LayoutDashboard, CalendarDays, ScanLine, ShoppingCart, Receipt, Settings } from 'lucide-react'
+import { apiGet } from './services/api'
 import './App.css'
 
 function Dashboard() {
