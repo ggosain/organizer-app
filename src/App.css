@@ -290,3 +290,7 @@ select {
     grid-template-columns: 1fr;
   }
 }
+.events-list {
+  display: grid;
+  gap: 14px;
+}
