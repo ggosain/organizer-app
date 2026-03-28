@@ -40,7 +40,11 @@ function Dashboard() {
   }, [])
 
   if (loading) {
-    return <div className="page"><h1>Loading dashboard...</h1></div>
+    return (
+      <div className="page">
+        <h1>Loading dashboard...</h1>
+      </div>
+    )
   }
 
   if (error) {
@@ -162,10 +166,147 @@ function Scanner() {
 }
 
 function Sales() {
+  const [events, setEvents] = useState([])
+  const [selectedEventId, setSelectedEventId] = useState('')
+  const [salesData, setSalesData] = useState(null)
+  const [loadingEvents, setLoadingEvents] = useState(true)
+  const [loadingSales, setLoadingSales] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    async function loadEvents() {
+      try {
+        const res = await apiGet('events.php')
+        const eventList = res.events || []
+        setEvents(eventList)
+
+        if (eventList.length > 0) {
+          setSelectedEventId(String(eventList[0].id))
+        }
+      } catch (err) {
+        setError(err.message || 'Failed to load events')
+      } finally {
+        setLoadingEvents(false)
+      }
+    }
+
+    loadEvents()
+  }, [])
+
+  useEffect(() => {
+    async function loadSales() {
+      if (!selectedEventId) return
+
+      try {
+        setLoadingSales(true)
+        setError('')
+        const res = await apiGet(`sales.php?event_id=${selectedEventId}`)
+        setSalesData(res)
+      } catch (err) {
+        setError(err.message || 'Failed to load sales')
+      } finally {
+        setLoadingSales(false)
+      }
+    }
+
+    loadSales()
+  }, [selectedEventId])
+
   return (
     <div className="page">
       <h1>Sales</h1>
-      <div className="panel">Sales API comes next</div>
+
+      <div className="panel" style={{ marginBottom: '18px' }}>
+        <label className="muted" style={{ display: 'block', marginBottom: '8px' }}>
+          Select Event
+        </label>
+        {loadingEvents ? (
+          <p>Loading events...</p>
+        ) : (
+          <select
+            value={selectedEventId}
+            onChange={(e) => setSelectedEventId(e.target.value)}
+          >
+            {events.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.title}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {error && (
+        <div className="panel" style={{ marginBottom: '18px' }}>
+          {error}
+        </div>
+      )}
+
+      {loadingSales && (
+        <div className="panel">Loading sales...</div>
+      )}
+
+      {!loadingSales && salesData && (
+        <>
+          <div className="stats-grid" style={{ marginBottom: '18px' }}>
+            <div className="stat-card">
+              <span>Tickets Sold</span>
+              <strong>{salesData.summary?.total_tickets ?? 0}</strong>
+            </div>
+            <div className="stat-card">
+              <span>Revenue</span>
+              <strong>${Number(salesData.summary?.total_revenue ?? 0).toFixed(2)}</strong>
+            </div>
+            <div className="stat-card">
+              <span>Orders</span>
+              <strong>{salesData.summary?.total_orders ?? 0}</strong>
+            </div>
+            <div className="stat-card">
+              <span>Avg Order Value</span>
+              <strong>${Number(salesData.summary?.avg_order_value ?? 0).toFixed(2)}</strong>
+            </div>
+          </div>
+
+          <div className="panel" style={{ marginBottom: '18px' }}>
+            <h3 style={{ marginTop: 0 }}>Ticket Breakdown</h3>
+            {salesData.ticket_breakdown?.length ? (
+              <div className="events-list">
+                {salesData.ticket_breakdown.map((row, index) => (
+                  <div className="list-card" key={index}>
+                    <strong>{row.ticket_type}</strong>
+                    <div className="muted">Sold: {row.sold}</div>
+                    <div className="muted">
+                      Revenue: ${Number(row.revenue ?? 0).toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">No ticket breakdown yet.</p>
+            )}
+          </div>
+
+          <div className="panel">
+            <h3 style={{ marginTop: 0 }}>Recent Sales</h3>
+            {salesData.recent_sales?.length ? (
+              <div className="events-list">
+                {salesData.recent_sales.map((sale) => (
+                  <div className="list-card" key={sale.id}>
+                    <strong>{sale.buyer_name}</strong>
+                    <div className="muted">{sale.ticket_type}</div>
+                    <div className="muted">{sale.email}</div>
+                    <div className="muted">
+                      {sale.order_number} • ${Number(sale.final_price ?? 0).toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">No recent sales yet.</p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
